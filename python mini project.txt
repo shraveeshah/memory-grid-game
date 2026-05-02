@@ -1,0 +1,129 @@
+import tkinter as tk
+import random
+from tkinter import messagebox
+
+root = tk.Tk()
+root.title("Memory Grid Game")
+
+# Global variables
+buttons = []
+numbers = []
+current_number = 1
+level = 1
+grid_size = 3
+timer_running = False 
+
+# Dynamic Time Variables
+memorize_time = 3
+play_time = 20
+
+# UI Elements
+timer_label = tk.Label(root, text="", font=("Arial", 14, "bold"), fg="blue")
+timer_label.pack(pady=5)
+
+frame = tk.Frame(root)
+frame.pack()
+
+result_label = tk.Label(root, text="", font=("Arial", 14, "bold"))
+result_label.pack(pady=10)
+
+def start_level(lvl):
+    global level, grid_size, numbers, current_number, timer_running
+    global memorize_time, play_time
+
+    # Reset UI
+    for widget in frame.winfo_children():
+        widget.destroy()
+
+    level = lvl
+    
+    # --- LEVEL CONFIGURATION ---
+    if level == 1:
+        grid_size = 3
+        memorize_time = 3
+        play_time = 20
+    else:
+        grid_size = 4
+        memorize_time = 7
+        play_time = 30
+
+    total_numbers = grid_size * grid_size
+    numbers = list(range(1, total_numbers + 1))
+    random.shuffle(numbers)
+
+    current_number = 1
+    timer_running = False 
+    result_label.config(text="", fg="black")
+
+    create_grid()
+    start_memorize_timer(memorize_time)
+
+def create_grid():
+    global buttons
+    buttons = []
+
+    for i in range(len(numbers)):
+        val = numbers[i]
+        btn = tk.Button(frame, text=str(val), width=6, height=3, font=("Arial", 10, "bold"),
+                        bg="lightgray",
+                        command=lambda v=val, idx=i: on_click(v, idx))
+        btn.grid(row=i // grid_size, column=i % grid_size, padx=2, pady=2)
+        buttons.append(btn)
+
+def hide_numbers():
+    global timer_running
+    for btn in buttons:
+        btn.config(text="?", bg="white", state="normal")
+    timer_running = True
+    start_play_timer(play_time)
+
+def on_click(original_value, index):
+    global current_number, timer_running
+
+    if not timer_running: 
+        return
+
+    if original_value == current_number:
+        buttons[index].config(text=str(original_value), state="disabled", bg="lightgreen")
+        current_number += 1
+
+        if current_number > len(numbers):
+            timer_running = False
+            result_label.config(text="Correct! 🎉", fg="green")
+            if level == 1:
+                root.after(1500, lambda: start_level(2))
+            else:
+                messagebox.showinfo("Victory", "You completed all levels! 🏆")
+                root.destroy()
+    else:
+        timer_running = False
+        buttons[index].config(text=str(original_value), bg="red")
+        result_label.config(text="Wrong! Game Over ❌", fg="red")
+        for btn in buttons: 
+            btn.config(state="disabled")
+
+# -------- TIMER FUNCTIONS -------- #
+
+def start_memorize_timer(time_left):
+    if time_left > 0:
+        timer_label.config(text=f"Memorize: {time_left}s", fg="orange")
+        root.after(1000, start_memorize_timer, time_left - 1)
+    else:
+        hide_numbers()
+
+def start_play_timer(time_left):
+    if not timer_running: 
+        return 
+
+    if time_left > 0:
+        timer_label.config(text=f"Time Left: {time_left}s", fg="blue")
+        root.after(1000, start_play_timer, time_left - 1)
+    else:
+        timer_running = False
+        result_label.config(text="Time's up! ⏰", fg="red")
+        for btn in buttons: 
+            btn.config(state="disabled")
+
+# Start game
+start_level(1)
+root.mainloop()
